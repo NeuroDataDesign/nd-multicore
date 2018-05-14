@@ -74,13 +74,14 @@ def get_data(resource, block):
     # NOTE: if you want to save output or merge, that's on you
     # TODO: second module with TSQ merging
 '''
-def job(block, resource, function = None):
+def job(block, resource, function = None, save_path = None):
     global BLOCK_INDEX
     global pbar
 
     block = get_data(resource, block)
     try:
-        result = function(block.data, (block.z_start, block.y_start, block.x_start), channel=resource.requested_channels[0])
+        result = function(block.data, (block.z_start, block.y_start, block.x_start), channel=resource.requested_channels[0],
+                          save_path=save_path)
     except Exception as ex:
         print(ex)
         print("Ran into error in algorithm, exiting this block")
@@ -100,7 +101,7 @@ def job(block, resource, function = None):
         cpus number of cpus to use
         block_size size of blocks
 '''
-def run_parallel(config_file, function, cpus = None, block_size = (320, 320, 100)):
+def run_parallel(config_file, function, cpus = None, block_size = (320, 320, 100), save_path = None):
     ## Make resource and compute blocks
     global pbar
     resource = ndr.get_boss_resource(config_file)
@@ -108,7 +109,7 @@ def run_parallel(config_file, function, cpus = None, block_size = (320, 320, 100
 
     pbar = tqdm(total=len(blocks))
     ## prepare job by fixing NeuroDataRresource argument
-    task = partial(job, resource = resource, function = function)
+    task = partial(job, resource = resource, function = function, save_path = save_path)
     ## Prepare pool
     num_workers = cpus
     if num_workers is None:
@@ -122,17 +123,13 @@ def run_parallel(config_file, function, cpus = None, block_size = (320, 320, 100
         raise
     pool.terminate()
 
-def start_process(module, fn):
+def start_process(module, fn, save_path):
     start = datetime.now()
-    if len(sys.argv) != 3:
-        print("Provide module, function as arguments")
-        sys.exit(-1)
     #TODO: integrate argparser
     mod = import_module(module)
     function = getattr(mod, fn)
 
     with open('final.csv', 'w') as final_csv:
         final_csv.write('')
-    run_parallel(config_file = "neurodata.cfg", function = function, cpus=10)
+    run_parallel(config_file = "neurodata.cfg", function = function, cpus=10, save_path = save_path)
     end = datetime.now()
-    print(end-start)
