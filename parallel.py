@@ -7,6 +7,12 @@ from importlib import import_module
 from functools import partial
 import numpy as np
 from datetime import datetime
+from tqdm import tqdm_notebook as tqdm
+
+global BLOCK_INDEX
+BLOCK_INDEX = 0
+
+global pbar
 
 '''
     This function is designed to compute proper block sizes (less than 2 gb)
@@ -69,9 +75,10 @@ def get_data(resource, block):
     # TODO: second module with TSQ merging
 '''
 def job(block, resource, function = None):
-    print("Starting job, retrieiving data")
+    global BLOCK_INDEX
+    global pbar
+
     block = get_data(resource, block)
-    print("Starting algorithm")
     try:
         result = function(block.data, (block.z_start, block.y_start, block.x_start), channel=resource.requested_channels[0])
     except Exception as ex:
@@ -80,7 +87,8 @@ def job(block, resource, function = None):
         return
 
     key = str(block.z_start) + "_" + str(block.y_start) + "_" + str(block.x_start)
-    print("Done with job")
+    BLOCK_INDEX += 1
+    pbar.update(BLOCK_INDEX)
     return key
 
 '''
@@ -94,8 +102,11 @@ def job(block, resource, function = None):
 '''
 def run_parallel(config_file, function, cpus = None, block_size = (50, 50, 50)):
     ## Make resource and compute blocks
+    global pbar
     resource = ndr.get_boss_resource(config_file)
     blocks = compute_blocks(resource, block_size)
+
+    pbar = tqdm(total=len(blocks))
     ## prepare job by fixing NeuroDataRresource argument
     task = partial(job, resource = resource, function = function)
     ## Prepare pool
@@ -104,21 +115,21 @@ def run_parallel(config_file, function, cpus = None, block_size = (50, 50, 50)):
         num_workers = mp.cpu_count() - 1
     pool = mp.Pool(num_workers)
     try:
-        print(pool.map(task, blocks))
+        pool.map(task, blocks)
     except:
         pool.terminate()
         print("Parallel failed, closing pool and exiting")
         raise
     pool.terminate()
 
-if __name__ == "__main__":
+def start_process(module, fn):
     start = datetime.now()
     if len(sys.argv) != 3:
         print("Provide module, function as arguments")
         sys.exit(-1)
     #TODO: integrate argparser
-    mod = import_module(sys.argv[1])
-    function = getattr(mod, sys.argv[2])
+    mod = import_module(module)
+    function = getattr(mod, fn)
 
     with open('final.csv', 'w') as final_csv:
         final_csv.write('')

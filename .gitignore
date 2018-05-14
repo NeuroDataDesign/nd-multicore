@@ -1,3 +1,6 @@
 __pycache__/
 *.cfg
 data/
+*.pyc
+.ipynb_checkpoints
+process_folder
