@@ -100,7 +100,7 @@ def job(block, resource, function = None):
         cpus number of cpus to use
         block_size size of blocks
 '''
-def run_parallel(config_file, function, cpus = None, block_size = (50, 50, 50)):
+def run_parallel(config_file, function, cpus = None, block_size = (320, 320, 100)):
     ## Make resource and compute blocks
     global pbar
     resource = ndr.get_boss_resource(config_file)
