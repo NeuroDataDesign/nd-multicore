@@ -6,7 +6,7 @@ import sys
 from importlib import import_module
 from functools import partial
 import numpy as np
-
+from datetime import datetime
 
 '''
     This function is designed to compute proper block sizes (less than 2 gb)
@@ -69,12 +69,11 @@ def get_data(resource, block):
     # TODO: second module with TSQ merging
 '''
 def job(block, resource, function = None):
-
     print("Starting job, retrieiving data")
     block = get_data(resource, block)
     print("Starting algorithm")
     try:
-        result = function(block.data)
+        result = function(block.data, (block.z_start, block.y_start, block.x_start), channel=resource.requested_channels[0])
     except Exception as ex:
         print(ex)
         print("Ran into error in algorithm, exiting this block")
@@ -93,7 +92,7 @@ def job(block, resource, function = None):
         cpus number of cpus to use
         block_size size of blocks
 '''
-def run_parallel(config_file, function, cpus = None, block_size = (1000, 1000, 10)):
+def run_parallel(config_file, function, cpus = None, block_size = (50, 50, 50)):
     ## Make resource and compute blocks
     resource = ndr.get_boss_resource(config_file)
     blocks = compute_blocks(resource, block_size)
@@ -113,10 +112,16 @@ def run_parallel(config_file, function, cpus = None, block_size = (1000, 1000, 1
     pool.terminate()
 
 if __name__ == "__main__":
+    start = datetime.now()
     if len(sys.argv) != 3:
         print("Provide module, function as arguments")
         sys.exit(-1)
     #TODO: integrate argparser
     mod = import_module(sys.argv[1])
     function = getattr(mod, sys.argv[2])
-    run_parallel(config_file = "neurodata.cfg", function = function)
+
+    with open('final.csv', 'w') as final_csv:
+        final_csv.write('')
+    run_parallel(config_file = "neurodata.cfg", function = function, cpus=10)
+    end = datetime.now()
+    print(end-start)

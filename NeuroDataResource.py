@@ -7,13 +7,14 @@ class NeuroDataResource:
     def __init__(self, host, token, collection, experiment, requested_channels,
                  x_range,
                  y_range,
-                 z_range):
+                 z_range, resolution=0):
 
         self._bossRemote = BossRemote({'protocol': 'https',
                                        'host': host,
                                        'token': token})
         self.collection = collection
         self.experiment = experiment
+        self.resolution = resolution
 
         self.channels = self._bossRemote.list_channels(collection, experiment)
 
@@ -71,7 +72,7 @@ class NeuroDataResource:
         datatype = channel_resource.datatype
 
         data = self._bossRemote.get_cutout(channel_resource,
-                                           0,
+                                           self.resolution,
                                            xRange,
                                            yRange,
                                            zRange)
@@ -132,6 +133,8 @@ def get_boss_config(boss_config_file):
     z_range = z_range.split(",")
     remote_metadata["z_range"]= list(map(int, z_range))
 
+    remote_metadata["resolution"] = int(config["Parallel"]["resolution"])
+
     return remote_metadata
 
 '''
@@ -151,5 +154,6 @@ def get_boss_resource(config_file):
                                  config["channels"],
                                  config["x_range"],
                                  config["y_range"],
-                                 config["z_range"])
+                                 config["z_range"],
+                                 config["resolution"])
     return resource
