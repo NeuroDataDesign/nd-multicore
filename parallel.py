@@ -9,7 +9,16 @@ import numpy as np
 from datetime import datetime
 from tqdm import tqdm_notebook as tqdm
 
-global pbar
+import threading
+
+def _updatepbar(pbar, total):
+    t = threading.Timer(2.0, _updatepbar, [pbar, total])
+    t.start()
+    n = len(open('progress.log', 'r').read().split('\n'))
+    if n >= total:
+        t.cancel()
+    percentage =  int((float(n)/float(total)) * 100.0)
+    pbar.update(percentage - pbar.n)
 
 '''
     This function is designed to compute proper block sizes (less than 2 gb)
@@ -73,7 +82,6 @@ def get_data(resource, block):
 '''
 def job(block, resource, function = None, save_path = None):
     global BLOCK_INDEX
-    global pbar
 
     block = get_data(resource, block)
     try:
@@ -85,8 +93,6 @@ def job(block, resource, function = None, save_path = None):
         return
 
     key = str(block.z_start) + "_" + str(block.y_start) + "_" + str(block.x_start)
-    BLOCK_INDEX += 1
-    pbar.update(BLOCK_INDEX)
     return key
 
 '''
@@ -100,11 +106,12 @@ def job(block, resource, function = None, save_path = None):
 '''
 def run_parallel(config_file, function, cpus = None, block_size = (320, 320, 100), save_path = None):
     ## Make resource and compute blocks
-    global pbar
     resource = ndr.get_boss_resource(config_file)
     blocks = compute_blocks(resource, block_size)
 
-    pbar = tqdm(total=len(blocks))
+    pbar = tqdm(total=100, desc='Bloby processing...')
+    _updatepbar(pbar, len(blocks))
+
     ## prepare job by fixing NeuroDataRresource argument
     task = partial(job, resource = resource, function = function, save_path = save_path)
     ## Prepare pool
@@ -120,8 +127,8 @@ def run_parallel(config_file, function, cpus = None, block_size = (320, 320, 100
         raise
     pool.terminate()
 
-def start_process(module, fn, save_path):
-    progress_log = open('progress.log', 'w')
+def start_process(module, fn, save_path, config_file):
+    pfile = open('progress.log', 'w')
     start = datetime.now()
     #TODO: integrate argparser
     mod = import_module(module)
@@ -129,5 +136,5 @@ def start_process(module, fn, save_path):
 
     with open('final.csv', 'w') as final_csv:
         final_csv.write('')
-    run_parallel(config_file = "neurodata.cfg", function = function, cpus=10, save_path = save_path)
+    run_parallel(config_file = config_file, function = function, cpus=10, save_path = save_path)
     end = datetime.now()
