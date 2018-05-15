@@ -9,9 +9,6 @@ import numpy as np
 from datetime import datetime
 from tqdm import tqdm_notebook as tqdm
 
-global BLOCK_INDEX
-BLOCK_INDEX = 0
-
 global pbar
 
 '''
@@ -124,6 +121,7 @@ def run_parallel(config_file, function, cpus = None, block_size = (320, 320, 100
     pool.terminate()
 
 def start_process(module, fn, save_path):
+    progress_log = open('progress.log', 'w')
     start = datetime.now()
     #TODO: integrate argparser
     mod = import_module(module)
