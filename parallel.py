@@ -7,7 +7,7 @@ from importlib import import_module
 from functools import partial
 import numpy as np
 from datetime import datetime
-from tqdm import tqdm_notebook as tqdm
+from tqdm import tqdm
 
 import threading
 
