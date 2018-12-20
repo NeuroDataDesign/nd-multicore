@@ -1,7 +1,7 @@
-import NeuroDataResource as ndr
+from . import NeuroDataResource as ndr
 import intern.utils.parallel as intern
 import multiprocessing as mp
-from util import Block
+from .util import Block
 import sys
 from importlib import import_module
 from functools import partial
@@ -85,7 +85,7 @@ def job(block, resource, function = None, save_path = None):
 
     block = get_data(resource, block)
     try:
-        result = function(block.data, (block.z_start, block.y_start, block.x_start), channel=resource.requested_channels[0],
+        result = function(block.data, (block.z_start, block.y_start, block.x_start), channel=resource.requested_channels,
                           save_path=save_path)
     except Exception as ex:
         print(ex)
@@ -104,8 +104,9 @@ def job(block, resource, function = None, save_path = None):
         cpus number of cpus to use
         block_size size of blocks
 '''
-def run_parallel(config_file, function, cpus = None, block_size = (320, 320, 100), save_path = None):
+def run_parallel(config_file, function, cpus = None, block_size = (512, 512, 96), save_path = None):
     ## Make resource and compute blocks
+    pfile = open('progress.log', 'w')
     resource = ndr.get_boss_resource(config_file)
     blocks = compute_blocks(resource, block_size)
 
@@ -127,14 +128,8 @@ def run_parallel(config_file, function, cpus = None, block_size = (320, 320, 100
         raise
     pool.terminate()
 
-def start_process(module, fn, save_path, config_file):
-    pfile = open('progress.log', 'w')
-    start = datetime.now()
+def start_process(fn, save_path, config_file):
     #TODO: integrate argparser
-    mod = import_module(module)
-    function = getattr(mod, fn)
 
-    with open('final.csv', 'w') as final_csv:
-        final_csv.write('')
-    run_parallel(config_file = config_file, function = function, cpus=10, save_path = save_path)
+    run_parallel(config_file = config_file, cpus=10, function = function, save_path = save_path)
     end = datetime.now()

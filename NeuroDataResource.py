@@ -5,9 +5,9 @@ import configparser
 
 class NeuroDataResource:
     def __init__(self, host, token, collection, experiment, requested_channels,
-                 x_range,
-                 y_range,
-                 z_range, resolution=0):
+                 x_range=None,
+                 y_range=None,
+                 z_range=None, resolution=0):
 
         self._bossRemote = BossRemote({'protocol': 'https',
                                        'host': host,
@@ -23,14 +23,14 @@ class NeuroDataResource:
         else:
             self.requested_channels = requested_channels
 
-        #self._get_coord_frame_details()
+        self._get_coord_frame_details()
         # validate range
         #if not self.correct_range(z_range, y_range, x_range):
         #    raise Exception("Error: Inccorect dimension range")
 
-        self.x_range = x_range
-        self.y_range = y_range
-        self.z_range = z_range
+        self.x_range = x_range or [0,self.max_dimensions[2]]
+        self.y_range = y_range or [0,self.max_dimensions[1]]
+        self.z_range = z_range or [0,self.max_dimensions[0]]
 
 
     def _get_coord_frame_details(self):
@@ -113,27 +113,41 @@ def get_boss_config(boss_config_file):
     # BOSS Host
     remote_metadata["host"] = config['Default']['host']
     # Boss experiment
-    remote_metadata["experiment"] = config['Parallel']['experiment']
+    remote_metadata["experiment"] = config['shared']['experiment']
     # Boss collection
-    remote_metadata["collection"] = config['Parallel']['collection']
+    remote_metadata["collection"] = config['shared']['collection']
     # Boss channels
     channels = config["Parallel"]["channels"]
     channels = channels.split(",")
     remote_metadata["channels"] = channels
     # Parse x_range
-    x_range = config["Parallel"]["x_range"]
-    x_range = x_range.split(",")
-    remote_metadata["x_range"] = list(map(int, x_range))
+    if "x_range" in config["Parallel"]:
+        x_range = config["Parallel"]["x_range"]
+        x_range = x_range.split(",")
+        remote_metadata["x_range"] = list(map(int, x_range))
+    else:
+        remote_metadata["x_range"] = None
     # Parse y_range
-    y_range = config["Parallel"]["y_range"]
-    y_range = y_range.split(",")
-    remote_metadata["y_range"] = list(map(int, y_range))
+    if "y_range" in config["Parallel"]:
+        y_range = config["Parallel"]["y_range"]
+        y_range = y_range.split(",")
+        remote_metadata["y_range"] = list(map(int, y_range))
+    else:
+        remote_metadata["y_range"] = None
     # Parse z_range
-    z_range = config["Parallel"]["z_range"]
-    z_range = z_range.split(",")
-    remote_metadata["z_range"]= list(map(int, z_range))
+    if "z_range" in config["Parallel"]:
+        z_range = config["Parallel"]["z_range"]
+        z_range = z_range.split(",")
+        remote_metadata["z_range"]= list(map(int, z_range))
+    else:
+        remote_metadata["z_range"]= None
 
-    remote_metadata["resolution"] = int(config["Parallel"]["resolution"])
+
+    if "resolution" in config["Parallel"]:
+        remote_metadata["resolution"] = int(config["Parallel"]["resolution"])
+    else:
+        remote_metadata["resolution"] = 0
+
 
     return remote_metadata
 
